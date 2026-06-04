@@ -29,7 +29,7 @@ disable-model-invocation: true
 切换角色 = hostile reviewer · 默认"代码有问题" · 逐维举证驳倒
 ```
 
-**维0 · 目的达成(前置硬门 · 红线4 用户目的=硬标准)**:对照 clarify 三件产物③「预期效果」+ 验收标准 §7 退出标准 → 建的 == 要的?用户能做到 ①原始诉求 / ③预期效果 吗?达不成 = must → 退 /pp-execute-v2 或 /pp-plan-v2(代码再干净也不放行)。
+**维0 · 目的达成(前置硬门 · 红线4 用户目的=硬标准)**:对照 clarify 三件产物③「预期效果」+ 验收标准 §7 退出标准(无三件产物 → 用 §7 + 对话目的;都无 → 提示先 /pp-clarify-v2)→ 建的 == 要的?用户能做到 ①原始诉求 / ③预期效果 吗?达不成 = must(代码再干净也不放行):**实现没做到目的 → 退 /pp-execute-v2;方案本身就达不到目的 → 退 /pp-plan-v2**。
 
 **代码质量 5 维(逐维找茬)**
 
@@ -49,19 +49,20 @@ disable-model-invocation: true
 Step 1 · 进阶段   ppwiki('task --advance_phase', {…review})   # op/参数以 system --help 为准
 Step 2 · 先过维0 目的达成(对照 clarify 三件产物③)→ 再 5 维逐维攻击 · 每条发现:
          ppwiki('review --submit', {维, 严重度, 证据 file:line, 建议})
-Step 3 · 真实测试复核(重跑 §5/§6 关键验收命令 · 记实际输出)
-Step 4 · 取待办修复:
-         ppwiki('review --list_pending') → 逐条修根因 → ppwiki('review --resolve')
+Step 3 · 真实测试复核(重跑 §5/§6 关键验收命令 · 记实际输出)· 挂 → 退 /pp-execute-v2(全绿是侥幸)
+Step 4 · 取待办修复(修完必复审 · 闭环):
+         ppwiki('review --list_pending') → 逐条修根因 → 重跑该维攻击 + 真实测试 →
+         通过才 ppwiki('review --resolve');仍挂 → 不 resolve · 退 /pp-execute-v2
 Step 5 · 写审查报告 → 证据/审查报告.md
          (5 维结论 + 实测 mermaid 流程图 + 真实测试输出 + 残留风险)
-Step 6 · 全绿(无 must 级未解)→ 末尾按公约交付 5 段给结论(结论/验证/未处理/风险/下一步)
+Step 6 · 全绿(无 must 级未解;should 可延 → 记入审查报告残留风险)→ 末尾按公约交付 5 段给结论(结论/验证/未处理/风险/下一步)
          + 附「近期回顾」→ 下一步 /pp-sync-v2
 ```
 
 ## 三、任务回顾(--recap 或审查末尾附)
 
 ```
-ppwiki('task --list', {近期 N})  → 逐个 ppwiki('task --get') 读 phases 状态机
+ppwiki('task --list', {近期 N=10})  → 逐个 ppwiki('task --get') 读 phases 状态机
 ```
 
 | 任务 | 阶段进度 | 做了什么 | 没做 / 遗留 |
@@ -97,9 +98,9 @@ AI: [审查 + 回顾 v2] 启动 — hostile 5 维攻击 · 真实测试复核 ·
        调用        ✓ 无越级 · 无倒置
        逻辑流程图  ✓ 实测链 = 设计链
     进度 [●●●○○○]  3/6 · 真实测试复核(重跑 §6 真实链路)→ ok
-    进度 [●●●●○○]  4/6 · 修待办
-       [must] 吞错 → 改抛具体错 · 业务层只转译 → resolve ✓
-       [should] 重复 → 底层统一信源 → resolve ✓
+    进度 [●●●●○○]  4/6 · 修待办(修完复审)
+       [must] 吞错 → 改抛具体错 · 业务层只转译 → 重跑代码维+测试 ✓ → resolve
+       [should] 重复 → 底层统一信源 → 重跑封装维 ✓ → resolve
     进度 [●●●●●○]  5/6 · 写审查报告 ✓ 证据/审查报告.md
     进度 [●●●●●●]  6/6 · 近期回顾
        PPAgent纯MCP核心重构  执行✓审查✓  → 待同步

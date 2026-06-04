@@ -30,7 +30,7 @@ disable-model-invocation: true
 | 检查 | 通过标志 |
 |---|---|
 | 任务目录存在 | `.pp/wiki/当前任务/[任务名]/` 在 |
-| 已审查 | 证据/审查报告.md 在(未审 → 提示先 /pp-review-v2) |
+| 已审查且通过 | 证据/审查报告.md 在 **且 0 must 未解**(未审/有 must → 提示先 /pp-review-v2) |
 | ppwiki 连接 | `ppwiki('system --health')` 成功 |
 
 ## 二、5 步流程
@@ -88,7 +88,8 @@ for asset in 提取列表:
                                  '关联代码': <取代码证据>, '详细说明':…})
 
 for d in 决策列表:
-    ppwiki('decision --create', {…})      # 决策走 decision 模块 · 参数查 system --help
+    查重 ppwiki('decision --list' / '--get') → 命中则跳过/update · 无则 ppwiki('decision --create', {…})
+    # 决策也查重(对齐 wiki 路径)· 保 sync 反复跑幂等 · 参数查 system --help
 
 维护索引(复用/_INDEX · 前端/_INDEX · 后端/_INDEX):
     ppwiki('wiki --update', {'id':'<scope>/_INDEX','mode':'append','field':'详细说明','text':<新行>})

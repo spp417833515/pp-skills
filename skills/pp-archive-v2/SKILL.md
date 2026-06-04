@@ -9,7 +9,7 @@ disable-model-invocation: true
 ## 定位
 
 ```
-任务收尾(同步已由 /pp-sync-v2 完成)· 2 步:
+任务收尾(同步已由 /pp-sync-v2 完成)· 两件事(流程 §二 共 3 步):
   · 总结    LLM 推导本次任务收益 · 写 任务总结.md
   · 归档    .pp/wiki/当前任务/[任务名]/ → .pp/wiki/任务归档/[任务名]_<日期>/ + task --archive
 
@@ -81,7 +81,7 @@ Step 3 · ppwiki('task --archive') + 询问用户 → mv 物理归档 → 验证
 - <一行经验 · 防止重蹈覆辙>
 ```
 
-## 四、Bash mv 物理归档命令(Step 3)
+## 四、物理归档命令(Step 3 · Bash;Windows 用 Git Bash 或 PowerShell Move-Item)
 
 ```bash
 # 用户 A 后执行:

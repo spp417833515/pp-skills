@@ -1,52 +1,58 @@
-# 依赖:ppwiki MCP
+# 依赖:ppwiki MCP(Python · 由 pptasks 提供)
 
 pp-skills 全程读写 ppwiki(澄清条目 / wiki 知识库 / task 阶段状态机 / review / decision)。
 **没有 ppwiki MCP,这 6 个技能跑不起来。**
 
-## 它提供什么
+## 架构(技能 ≠ MCP)
 
-一个 MCP 工具 `ppwiki`,8 个模块:`system / task / review / state / skill / wiki / clarify / decision`。
-调用格式 `ppwiki('模块 --动作', {...})`,op 全集见 `ppwiki('system --ops')`,
-参数 schema 查 `ppwiki('system --help', {module:'<模块>'})`。
-
-## 配置
-
-> 下面是把 ppwiki server 挂成 MCP 的形态;`command`/包名以 ppwiki 项目自身 README 为准。
-
-### Claude Code — 项目 `.mcp.json`(或全局)
-
-```json
-{
-  "mcpServers": {
-    "ppwiki": {
-      "command": "python",
-      "args": ["-m", "pp_wiki.mcp.server", "--project-root", "<你的项目根绝对路径>"]
-    }
-  }
-}
+```
+pp-skills(本仓库 · 提示词技能 · 无语言)
+   │ 调用
+ppwiki MCP = pptasks 的 mcpd.server(Python)
+   │ import
+pp_engine / pp_wiki(Python · 知识库内核)
 ```
 
-### Codex — `~/.codex/config.toml`
+→ ppwiki MCP 是 **Python** 的(整个 PP 生态都是 Python);本仓库只是上面的技能层。
 
-```toml
-[mcp_servers.pp_wiki]
-command = "python"
-args = ["-m", "pp_wiki.mcp.server", "--project-root", "<你的项目根绝对路径>"]
+## 安装(推荐:用 pptasks 自带的 install_mcp.sh)
+
+PP 生态里 `pptasks` 已提供一键安装器,自动做好**项目隔离 + 双工具注册**:
+
+```bash
+cd <pptasks 仓库>
+./install_mcp.sh --claude --codex  /abs/path/to/你的项目
+```
+
+它会:
+- 目标项目无 `.pp/wiki/` → 自动初始化知识库骨架
+- 写/合并 `<项目>/.mcp.json`:`command` 指向 pptasks 的 `mcp_start.sh` shim,`args = ["--project", "<项目绝对路径>"]`
+  → **项目隔离**:每个项目一份 `.mcp.json`,各自指向自己的 `.pp/wiki/`
+- `--codex` 同步写 `~/.codex/config.toml` 全局 MCP;`--claude` 清理同名 local MCP(避免覆盖 project 配置)
+- 启动自检:确认 server 不会立刻崩
+
+> 前置:pptasks 的 `.venv` 已就绪(在 pptasks 仓库先跑一次 `./start.sh`)。
+> `mcp_start.sh` 用 `.venv/bin/python -m mcpd.server` 拉起,并强制 `PYTHONUTF8=1`(防中文字段断流)。
+
+## 手动配置(没有 pptasks 安装器时的兜底)
+
+`<项目>/.mcp.json`(Claude 项目级 · Codex 同理写 `~/.codex/config.toml`):
+
+```json
+{ "mcpServers": { "ppwiki": {
+    "command": "<pptasks>/mcp_start.sh",
+    "args": ["--project", "<你的项目绝对路径>"]
+} } }
 ```
 
 ## 验证
 
-装好后,在 AI 里跑一次:
-
 ```
-ppwiki('system --health')
+ppwiki('system --health')     → {ok:true, ...} 即通
+ppwiki('system --ops')        → 看到 83 个 op(system/task/review/state/skill/wiki/clarify/decision)
 ```
 
-返回 `{ok:true, ...}` 即通。再 `ppwiki('system --ops')` 能看到 83 个 op。
+## 为什么是 Python 不是 Node
 
-## 数据落在哪
-
-- 澄清 → `ppwiki clarify` 条目 + `.pp/wiki/澄清/`
-- 方案 3 份 MD + 证据 → `.pp/wiki/当前任务/[任务名]/`
-- 资产/决策 → `ppwiki wiki` + `ppwiki decision`
-- 归档 → `.pp/wiki/任务归档/[任务名]_<日期>/`
+ppwiki/pp_engine 是 Python,MCP 直接 import 同进程调用。换 Node 必然要架 Python↔Node 桥
+或重写知识引擎 = 缝补 + 双信源 + 重复造轮子。生态 89 py / 0 js,Python 是唯一合理选择。

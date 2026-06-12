@@ -25,6 +25,15 @@ disable-model-invocation: true
 读 .pp/wiki/当前任务/[任务名]/{执行方案.md, 对话和澄清.md, 证据/审查报告.md}
 ```
 
+## 接口契约(移植先看这 · 三段式见 /pp-pipeline §五)
+
+| 项 | 内容 |
+|---|---|
+| 输入 | 执行方案.md 五类清单 + 对话和澄清.md §3 + 证据/ 四份(0 must 未解) |
+| 输出 | wiki / decision 条目 + _INDEX 维护(幂等:查重 → update · 写后回读) |
+| Store 接线 | ppwiki wiki / decision 模块 = **本技能本体**(入库即本职 · 不抽离) |
+| 缺依赖行为 | 无 ppwiki → 阻断(无降级意义);上游离线期标「未入库」的产物,恢复后重跑本技能补录 |
+
 ## 一、前置校验(任一失败即阻断)
 
 | 检查 | 通过标志 |
@@ -56,6 +65,7 @@ Step 5 · 证据归集校验 → 下一步建议 /pp-archive-v2
 同时扫:
 - **决策类** → 对话和澄清.md §3 已锁定决策 + clarify decide 记录 → `decision --create`
 - **逻辑流程图** → 证据/审查报告.md §2 实测 mermaid(直接灌 wiki 字段 · 不重画)
+- **全局逻辑流程图** → 执行方案.md §0.0 全局图(按审查报告 §2 核验结果修订)→ 灌 `_README`「逻辑流程图」字段(update · 供下次 plan §0.0 直接复用 · 飞轮:每跑一次任务校准一次)
 - **关联代码** → 证据/代码证据.md + 审查报告「调用维」发现(直接灌 wiki 字段)
 - **参考类** → 证据/外部证据.md 的外部 URL/文档 → 参考/<scope>/<name>
 
@@ -94,9 +104,11 @@ for d in 决策列表:
 维护索引(复用/_INDEX · 前端/_INDEX · 后端/_INDEX):
     ppwiki('wiki --update', {'id':'<scope>/_INDEX','mode':'append','field':'详细说明','text':<新行>})
 
-仅架构变更才碰 _README:
+_README(项目级 · 两种触发才碰):
     if 引入新框架/新数据流:
         ppwiki('wiki --update', {'id':'_README','mode':'patch', …})
+    if 执行方案 §0.0 全局逻辑流程图有修订(节点/边/契约变化):
+        ppwiki('wiki --update', {'id':'_README','mode':'patch','逻辑流程图': <§0.0 修订版>})
 
 写后验证(读事实不读记忆 · 不假设成功):
     for 每条刚 create/update 的 id:
@@ -164,18 +176,11 @@ AI: [同步 PPWIKI v2] 启动 — 提资产入 wiki + decision · 证据归集
 - ❌ 不重画流程图(取审查报告 §2 实测图)
 - ❌ 不替证据缺口造数据
 
-## 十、与既有命令的关系
-
-| 命令 | 阶段 | 定位 |
-|---|---|---|
-| /pp-clarify-v2 | 澄清/根因 | 三源调研 + 逻辑层单问 + 证据留存 |
-| /pp-plan-v2 | 方案 | 3 份 MD + 子代理模拟验证 |
-| /pp-execute-v2 | 执行 | 循环跑命令式验收 → 全绿 |
-| /pp-review-v2 | 审查 | 自我攻击 5 维 + 真实测试 + 跨任务回顾 |
-| **/pp-sync-v2** | 同步 | **本命令** · 提资产入 wiki/decision + 证据留存 |
-| /pp-archive-v2 | 归档 | 写总结 + 物理归档 |
+## 十、契约
 
 ```
-唯一链路:/pp-clarify-v2 → /pp-plan-v2 → /pp-execute-v2 → /pp-review-v2 → /pp-sync-v2 → /pp-archive-v2
-          澄清/根因      方案        执行          审查+回顾      同步        归档
+上游:/pp-review-v2 的审查报告(0 must)+ plan 的执行方案五类清单
+产出:wiki / decision 条目 + _INDEX(幂等可重跑 · 无 task 阶段)
+下游:/pp-archive-v2(校验"已同步"后写总结 + mv)
+全链路 / 目录结构 / 所有权 → /pp-pipeline
 ```

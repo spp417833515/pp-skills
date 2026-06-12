@@ -22,6 +22,15 @@ disable-model-invocation: true
 /pp-clarify-v2 <一句话需求>
 ```
 
+## 接口契约(移植先看这 · 三段式见 /pp-pipeline §五)
+
+| 项 | 内容 |
+|---|---|
+| 输入 | 一句话需求(用户)+ 三源调研(wiki / 代码 / 外部) |
+| 输出 | 三件产物(goal 锁定)+ **任务目录(本技能创建)** + 证据/{代码证据,外部证据}.md |
+| Store 接线 | ppwiki clarify 模块 · 记账①②③ → 见 §Store 接线 |
+| 缺依赖行为 | 无 ppwiki → **声明式降级**:经用户确认转本地档案模式,三件产物+决策落 `任务目录/澄清.md` 顶部标「未入库」,恢复后 /pp-sync-v2 补录;wiki 源不可用 → 三源缺一照走(标注) |
+
 ## 一、事实 vs 判断 · 四分闸(每个候选问题先归类 · 红线"读事实不读记忆"落地)
 
 **任何问题出口前 · 先归类 · 不是"判断"的一律不问用户**:
@@ -36,11 +45,11 @@ disable-model-invocation: true
 
 | 三源(先跑·不问) | 动作 | 工具 |
 |---|---|---|
-| Wiki | 找历史决策/沉淀 | `ppwiki('wiki --search')` / `--tree` |
-| 代码 | 读现状/调用链/可复用 | `Read` / `Grep` / `Glob` |
-| 外部 | 版本/标准/官方指引 | web 检索(仅当判断依赖外部事实) |
+| Wiki | 找历史决策/沉淀 · 读 `_README` 全局逻辑流程图(吃透项目逻辑流程架构) | 知识库检索 → 记账⓪ |
+| 代码 | 读现状/调用链/可复用 · 理清当前任务涉及的详细逻辑流程 | `Read` / `Grep` / `Glob` |
+| 外部 | 版本/标准/官方指引 · 优秀项目参考(同类项目怎么做) | web 检索(仅当判断依赖外部事实) |
 
-三源结果落盘 → `证据/代码证据.md`(每条 file:line)· `证据/外部证据.md`(URL/来源)。
+三源结果落盘 → `[任务名]/证据/代码证据.md`(每条 file:line · 含当前任务涉及的调用链/逻辑流程,供 plan §0.0 定位)· `证据/外部证据.md`(URL/来源)。**任务目录由本技能首次创建**(结构与所有权单源 → /pp-pipeline §三§四)。
 
 > ①③ = 代码层(AI 自决)· ② = 证据确认 · ④ = 逻辑层(你拍)。这就是下一节的细粒度版。
 
@@ -100,14 +109,12 @@ N=0 → 全代码层可定 · 跳过单问 · 直接锁;  N 1-8 → 逐个单问
 ## 四、6 步流程
 
 ```
-Step 1 · 收原话 + ppwiki('clarify --create', {name, intent})
+Step 1 · 收原话 · 创建任务目录 + 证据/ → 记账①
 Step 2 · 三源调研 + 四分闸归类(事实自读·落证据)· 不问用户
 Step 3 · 先过 ⓪ 两道闸(多需求拆条 / 数据风险必锁)→ 推出 N 个"人·判断"决策点(每条需求 0..8)· 意图优先排序
-Step 4 · N>0 → 单问循环:A/B 对比图 + mermaid 流程图 → 必要时第一性反问
-          每锁一条:ppwiki('clarify --append_clarification' + '--decide_clarification')
-          (参数 schema 查 ppwiki('system --help', {module:'clarify'}) · 禁凭记忆)
+Step 4 · N>0 → 单问循环:A/B 对比图 + mermaid 流程图 → 必要时第一性反问 · 每锁一条 → 记账②
 Step 5 · lock 前过 analyst 6 镜自查(下表)· 命中 → 补 1 决策点(只挑"会改方向"的)
-Step 6 · 全锁 → 输出三件产物(§五)→ ppwiki('clarify --lock', {goal=三件浓缩})→ 进 /pp-plan-v2
+Step 6 · 全锁 → 输出三件产物(§五)→ 记账③ → 进 /pp-plan-v2
 ```
 
 **analyst 6 镜(Step 5 · lock 前快速自查 · 别找 50 个边界)**
@@ -120,7 +127,7 @@ Step 6 · 全锁 → 输出三件产物(§五)→ ppwiki('clarify --lock', {goal
 | 边界条件 | 异常/空/并发有没漏? | 记入澄清描述 |
 | 验收方向 | 怎么算做成了? | 只记方向 · 细节留 plan-v2 |
 
-## 五、最终澄清产物(三件 · 收尾必出 · = 你 CLAUDE.md 澄清图表三列)
+## 五、最终澄清产物(三件 · 收尾必出 · = 项目公约 AGENT.md 澄清图表三列)
 
 ```
 ┌──── 澄清完成 · 最终产物 ──────────────────────────────┐
@@ -192,11 +199,24 @@ AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
 
 **不允许**:问 AI 该自己读代码回答的事 · 问 wiki 已沉淀的事 · 问技术实现细节 · 一次问多件 · 评分表/本体表/加权数学。
 
+## Store 接线(ppwiki · 移植时改写/删除本节 · 方法论正文零 ppwiki)
+
+| 记账点 | 时机 | op |
+|---|---|---|
+| ⓪ | Step 2 三源·wiki 源 | `wiki --search {query}` / `wiki --tree`(只读) |
+| ① | Step 1 收原话 | `clarify --create {name, requirement}` |
+| ② | Step 4 每锁一决策 | `clarify --append_clarification` → 用户答 `--answer_clarification` → 沉淀 `--decide_clarification` |
+| ③ | Step 6 全锁收尾 | `clarify --lock {name, goal=三件浓缩}` |
+
+- op / 参数以 `ppwiki('system --help', {module:'clarify'})` 为准 · 禁凭记忆
+- 派生 task **不在本技能**(锁定后由 /pp-plan-v2 `clarify --derive_task`,所有权 → /pp-pipeline §三)
+- 离线降级:记账①②③ 改落 `任务目录/澄清.md`(标「未入库」)· 必须显式声明 · 禁静默跳过
+
 ## 八、失败 / 边界
 
 | 情况 | 处置 |
 |---|---|
-| ppwiki MCP 未连接 | 提示 `install_mcp.sh` · 阻断 |
+| ppwiki MCP 未连接 | 提示 `install_mcp.sh` · 经用户确认转**本地档案模式**(澄清.md 标「未入库」· 见 §Store 接线) |
 | 三源全空 | 先补 1 句"你最想达到什么效果?" |
 | AI 推出 >8 决策点 | 没读懂代码 · 退回三源 · 收口 ≤8 |
 | AI 推出 0 决策点 | 跳过单问 · 非目标+代码层授权 摊给用户一次性点确认 → 出三件产物 + lock |
@@ -210,22 +230,15 @@ AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
 - ❌ 不问代码层 / 不让你陷入实现选择
 - ❌ 不出 LLM 术语(评分/模糊度/本体/加权)
 - ❌ 不跳三源直接问 · 不问代码已能回答的事
-- ❌ 不绕过 ppwiki(必经 create/append_clarification/decide_clarification/lock)
+- ❌ 不静默绕过记账(在线必经记账①②③;离线必须显式声明本地档案模式)
 - ❌ 不在锁定前派生 task(留 /pp-plan-v2)
 - ❌ 非目标/代码层授权没锁不许收尾
 
-## 十、与既有命令的关系
-
-| 命令 | 阶段 | 定位 |
-|---|---|---|
-| **/pp-clarify-v2** | 澄清/根因 | **本命令** · 四分闸 + 决策点 A/B+流程图 + 三件产物 · 写 ppwiki clarify |
-| /pp-plan-v2 | 方案 | 读三件产物 + 证据 · 3 份 MD · 子代理模拟验证 |
-| /pp-execute-v2 | 执行 | 循环跑命令式验收 → 全绿 |
-| /pp-review-v2 | 审查 | 自我攻击 5 维 + 真实测试 + 跨任务回顾 |
-| /pp-sync-v2 | 同步 | 提资产入 wiki + 证据留存 |
-| /pp-archive-v2 | 归档 | 写总结 + 物理归档 |
+## 十、契约
 
 ```
-唯一链路:/pp-clarify-v2 → /pp-plan-v2 → /pp-execute-v2 → /pp-review-v2 → /pp-sync-v2 → /pp-archive-v2
-          澄清/根因         方案          执行            审查+回顾        同步          归档
+上游:用户一句话需求
+产出:三件产物(goal 锁定)+ 任务目录 + 证据/{代码证据,外部证据}.md
+下游:/pp-plan-v2(读三件产物 · 派生 task)
+全链路 / 目录结构 / 所有权 → /pp-pipeline
 ```

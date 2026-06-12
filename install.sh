@@ -5,7 +5,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/skills"
-SKILLS=(pp-clarify-v2 pp-plan-v2 pp-execute-v2 pp-review-v2 pp-sync-v2 pp-archive-v2)
+SKILLS=(pp-clarify-v2 pp-plan-v2 pp-execute-v2 pp-review-v2 pp-sync-v2 pp-archive-v2 pp-pipeline)
 OLD_V1=(clarify-v2 plan-v2 archive-v2)   # 旧·无前缀版 → 清理(单一信源)
 
 install_to() {
@@ -23,7 +23,7 @@ install_to() {
   for o in "${OLD_V1[@]}"; do
     if [ -d "$dest/$o" ]; then rm -rf "$dest/$o"; echo "  ✗ 清理旧 v1: $o"; fi
   done
-  echo "  → $tool: 6 技能就位 @ $dest"
+  echo "  → $tool: ${#SKILLS[@]} 技能就位 @ $dest"
 }
 
 echo "════ pp-skills 安装 ════"

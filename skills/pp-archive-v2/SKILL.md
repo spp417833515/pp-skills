@@ -25,6 +25,15 @@ disable-model-invocation: true
 
 验收通过 = 用户调用 /pp-archive-v2 即视为通过(信任 · 不重新验收)。
 
+## 接口契约(移植先看这 · 三段式见 /pp-pipeline §五)
+
+| 项 | 内容 |
+|---|---|
+| 输入 | 任务目录:3 份 MD + 证据/ 四份(齐全校验) |
+| 输出 | 任务总结.md + 物理归档目录 `.pp/wiki/任务归档/[任务名]_日期/` |
+| Store 接线 | ppwiki `task --archive` + `wiki --search` 校验 · 记账①② → 见 §Store 接线 |
+| 缺依赖行为 | 无 ppwiki → 总结照写 · mv 照走(仍须用户拍板)· 记账跳过并声明 |
+
 ## 一、前置校验(任一失败即阻断)
 
 | 检查 | 通过标志 |
@@ -32,7 +41,7 @@ disable-model-invocation: true
 | 任务目录存在 | `.pp/wiki/当前任务/[任务名]/` 在 |
 | 3 份 MD 齐全 | 对话和澄清.md / 验收标准.md / 执行方案.md 都在 |
 | 证据齐全 | 证据/{代码证据,外部证据,执行验收,审查报告}.md 在(缺 → 提示回对应阶段) |
-| 已同步 | /pp-sync-v2 已跑(`ppwiki('wiki --search', {本任务关键词})` 命中);未命中 → 提示先 /pp-sync-v2 |
+| 已同步 | /pp-sync-v2 已跑(记账② 校验命中);未命中 → 提示先 /pp-sync-v2 |
 | 归档目录无冲突 | `.pp/wiki/任务归档/[任务名]_<日期>/` 不存在 · 冲突 → 加 `-rescue-NNN` 后缀 |
 
 ## 二、3 步流程
@@ -40,7 +49,7 @@ disable-model-invocation: true
 ```
 Step 1 · 前置校验(上表)
 Step 2 · 写 任务总结.md(落到 当前任务/[任务名]/ · 待归档时随 mv)
-Step 3 · ppwiki('task --archive') + 询问用户 → mv 物理归档 → 验证 dst 存在且 src 已不在(不假设成功)
+Step 3 · 记账①(task 置归档态)+ 询问用户 → mv 物理归档 → 验证 dst 存在且 src 已不在(不假设成功)
 ```
 
 ## 三、任务总结.md 模板(Step 2)
@@ -102,6 +111,16 @@ mv "$SRC" "$DST"
 if [ -d "$DST" ] && [ ! -d "$SRC" ]; then echo "✓ 归档落地: $DST"; else echo "✗ mv 未落地 · 阻断"; exit 1; fi
 ```
 
+## Store 接线(ppwiki · 移植时改写/删除本节 · 方法论正文零 ppwiki)
+
+| 记账点 | 时机 | op |
+|---|---|---|
+| ① | Step 3 置归档态 | `task --archive {task_id}`(默认校验 phase==P5 · 历史/手动归档 `force=true`) |
+| ② | 前置校验 · 已同步 | `wiki --search {本任务关键词}`(命中 = 已 sync 的代理判定) |
+
+- op / 参数以 `ppwiki('system --help', {module:'task'/'wiki'})` 为准 · 禁凭记忆
+- 离线降级:①② 跳过并显式声明 · 总结与 mv 照走(仍须用户拍板)· 禁静默
+
 ## 五、用户视角对话样例
 
 ```
@@ -153,24 +172,11 @@ AI: ✓ mv 完成 · 验证 dst 在 / src 已移除
 - ❌ 不擅自 mv(必须用户拍 A)
 - ❌ 不动 当前任务/ 和 任务归档/ 之外的文件
 
-## 八、与既有命令的关系
+## 八、契约
 
 ```
-完整 v2 链路:
-
-  /pp-clarify-v2 → /pp-plan-v2 → /pp-execute-v2 → /pp-review-v2 → /pp-sync-v2 → /pp-archive-v2
-   ──────────    ────────   ──────────    ─────────    ────────   ──────────
-   三源调研       3 份 MD    循环跑命令    自我攻击5维   提资产入   写总结
-   逻辑层单问     子代理     式验收→全绿   +真实测试    wiki+留证   +物理归档
-   +证据留存      模拟验证                +跨任务回顾   decision
-   写 clarify                                          写 wiki
+上游:/pp-sync-v2 已入库(记账② 校验)+ 任务目录全产物
+产出:任务总结.md + .pp/wiki/任务归档/[任务名]_日期/(任务闭环)
+下游:无(链路终点)
+全链路 / 目录结构 / 所有权 → /pp-pipeline
 ```
-
-| 命令 | 阶段 | 定位 |
-|---|---|---|
-| /pp-clarify-v2 | 澄清/根因 | 三源调研 + 逻辑层单问 + 证据留存 |
-| /pp-plan-v2 | 方案 | 3 份 MD + 子代理模拟验证 |
-| /pp-execute-v2 | 执行 | 循环跑命令式验收 → 全绿 |
-| /pp-review-v2 | 审查 | 自我攻击 5 维 + 真实测试 + 跨任务回顾 |
-| /pp-sync-v2 | 同步 | 提资产入 wiki/decision + 证据留存 |
-| **/pp-archive-v2** | 归档 | **本命令** · 写总结 + 物理归档 |

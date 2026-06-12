@@ -12,7 +12,7 @@ disable-model-invocation: true
 不是"写完就算" · 是"逐条跑 验收标准.md §5 命令 · 比对期望值 · 红就回修 · 全绿才推进"
 不是 mock 自欺 · 是真实运行(有外部依赖→≥1 真实 URL/KEY;纯内部任务→真实端到端跑)
 不是黑箱 · 是每条验收命令的实际输出留存为证据
-执行全程吃 CLAUDE.md 铁律:修根因 / 禁缝补 / 手术刀 / 底层先足量
+执行全程吃 项目公约 AGENT.md 铁律:修根因 / 禁缝补 / 手术刀 / 底层先足量
 ```
 
 ## 调用方式
@@ -24,7 +24,16 @@ disable-model-invocation: true
 
 无任务目录 / 缺 MD → 阻断 · 提示先 /pp-plan-v2 产出三份 MD。
 
-## 一、执行铁律(继承 CLAUDE.md · 命中即停回退)
+## 接口契约(移植先看这 · 三段式见 /pp-pipeline §五)
+
+| 项 | 内容 |
+|---|---|
+| 输入 | `任务目录/{执行方案.md, 验收标准.md}` |
+| 输出 | 代码改动(全绿)+ `证据/执行验收.md` |
+| Store 接线 | ppwiki task 模块 · 记账①②③ → 见 §Store 接线 |
+| 缺依赖行为 | 缺 MD → 阻断提示先 /pp-plan-v2;无 ppwiki → 跳过记账(声明)· 施工与验收循环照跑(文件契约不受影响) |
+
+## 一、执行铁律(继承 项目公约 AGENT.md · 命中即停回退)
 
 | 铁律 | 触发即停 | 动作 |
 |---|---|---|
@@ -38,11 +47,10 @@ disable-model-invocation: true
 ## 二、5 步流程
 
 ```
-Step 1 · 进阶段
-         ppwiki('task --advance_phase', {…execute})   # op/参数以 system --help 为准
+Step 1 · 进阶段 → 记账①
 
 Step 2 · 按 执行方案.md 五类清单施工(复用 §1 > 优化 §2 > 修改 §3 > 清理 §4 > 新建 §5)
-         每完成一层:ppwiki('task --fill_step' / 'task --finish_layer')
+         每完成一层 → 记账②
          清理清单 §4 = 直接删错误/冗余代码(不留 deprecated 二路)
 
 Step 3 · 循环验收(核心 · 直到全绿)
@@ -57,13 +65,12 @@ Step 4 · 提交前自检(公约自检清单 11 项 · "提交代码前逐项过
          重点 7分层清晰 / 8无污染 / 9业务层一行 / 10底层足量 · 任一不过→回修(非记一笔放过)
          (自查 during 施工;review 阶段再做 hostile 外审 · 防御纵深 · 非双信源)
 
-Step 5 · 全绿收口
-         ppwiki('task --progress', {…})
+Step 5 · 全绿收口 → 记账③
          证据留存 → 证据/执行验收.md(命令 + 实际输出 + 真实链路原文)
          下一步:进 /pp-review-v2
 ```
 
-## 三、证据留存(Step 4 · 落盘)
+## 三、证据留存(Step 5 · 落盘)
 
 ```
 .pp/wiki/当前任务/[任务名]/证据/执行验收.md
@@ -76,6 +83,18 @@ Step 5 · 全绿收口
 | 真实链路 | `curl -s $REAL_URL` | `200 + {ok:true}` | `200 {ok:true}` | ✓ |
 
 > 真实链路输出原文(去敏后)附表末 · 作为"非 mock"的物证。
+
+## Store 接线(ppwiki · 移植时改写/删除本节 · 方法论正文零 ppwiki)
+
+| 记账点 | 时机 | op |
+|---|---|---|
+| ① | Step 1 进执行阶段 | `task --advance_phase {task_id, to_phase}` |
+| ② | Step 2 每完成一层 | `task --fill_step` / `task --finish_layer` |
+| ③ | Step 5 全绿收口 | `task --progress {task_id}` |
+
+- op / 参数以 `ppwiki('system --help', {module:'task'})` 为准 · 禁凭记忆
+- task 由 /pp-plan-v2 派生(所有权 → /pp-pipeline §三);task 不存在 → 回 plan 补派生 · 不在本技能补建
+- 离线降级:跳过记账并显式声明 · 验收循环照跑 · 禁静默
 
 ## 四、用户视角对话样例
 
@@ -123,18 +142,11 @@ AI: [执行 v2] 启动 — 按执行方案五类清单施工 · 循环验收到�
 - ❌ 不用纯 mock 冒充真实链路
 - ❌ 不顺手改 执行方案.md 之外的代码(手术刀)
 
-## 七、与既有命令的关系
-
-| 命令 | 阶段 | 定位 |
-|---|---|---|
-| /pp-clarify-v2 | 澄清/根因 | 三源调研 + 逻辑层单问 + 证据留存 |
-| /pp-plan-v2 | 方案 | 3 份 MD + 子代理模拟验证 |
-| **/pp-execute-v2** | 执行 | **本命令** · 循环跑命令式验收 → 全绿 |
-| /pp-review-v2 | 审查 | 自我攻击审查 5 维 + 真实测试 + 跨任务回顾 |
-| /pp-sync-v2 | 同步 | 提资产入 wiki + 证据留存 |
-| /pp-archive-v2 | 归档 | 写总结 + 物理归档 |
+## 七、契约
 
 ```
-唯一链路:/pp-clarify-v2 → /pp-plan-v2 → /pp-execute-v2 → /pp-review-v2 → /pp-sync-v2 → /pp-archive-v2
-          澄清/根因      方案        执行          审查+回顾      同步        归档
+上游:/pp-plan-v2 的 执行方案.md + 验收标准.md
+产出:全绿代码 + 证据/执行验收.md
+下游:/pp-review-v2(hostile 复核 · 重跑关键验收)
+全链路 / 目录结构 / 所有权 → /pp-pipeline
 ```

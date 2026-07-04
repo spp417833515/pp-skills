@@ -48,9 +48,14 @@ cd <pptasks 仓库>
 ## 验证
 
 ```
-ppwiki('system --health')     → {ok:true, ...} 即通
-ppwiki('system --ops')        → 看到 83 个 op(system/task/review/state/skill/wiki/clarify/decision)
+wiki('system --health')     → {ok:true, ...} 即通
+wiki('system --ops')        → tools 字段 = 六工具→模块域映射,ops 为全量命令清单
 ```
+
+> 六工具收口(2026-07-04):单 server(ppwiki)对外直接暴露六个一等工具
+> `clarify / task / wiki / skill / memory / project_flow`,签名统一 `<tool>(op, params)`;
+> op 仍是 `"模块 --动作"`,但必须经所属工具调用(decision/review/state 归 task 门,
+> system/reusable_code 归 wiki 门)。走错门会返回 WRONG_TOOL 并指路。
 
 ## 为什么是 Python 不是 Node
 

@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# pp-skills 安装器 — 把 6 阶段 ppwiki 流水线技能装进 Claude Code 和/或 Codex
+# pp-skills 安装器 — 把 5 阶段 ppwiki 流水线技能装进 Claude Code 和/或 Codex
 # 用法: bash install.sh
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/skills"
-SKILLS=(pp-clarify-v2 pp-plan-v2 pp-execute-v2 pp-review-v2 pp-sync-v2 pp-archive-v2 pp-pipeline)
+# 单一信源 = MYAI data/skills(金源)。安装顺序: 金源先行 → 再推 adapters,
+# 保证 GUI 展示(读金源)与 Claude/Codex 执行(读 adapters)永远同一份。
+MYAI_ROOT="${MYAI_ROOT:-$HOME/桌面/MYAI}"
+SKILLS=(pp-clarify-v2 pp-plan-v2 pp-execute-v2 pp-review-v2 pp-archive-v2 pp-pipeline)
 OLD_V1=(clarify-v2 plan-v2 archive-v2)   # 旧·无前缀版 → 清理(单一信源)
+RETIRED=(pp-sync-v2)                      # 已退役·并入 pp-archive-v2 → 清理残留
 
 install_to() {
   local tool="$1" base="$2" dest="$2/skills"
@@ -23,10 +27,14 @@ install_to() {
   for o in "${OLD_V1[@]}"; do
     if [ -d "$dest/$o" ]; then rm -rf "$dest/$o"; echo "  ✗ 清理旧 v1: $o"; fi
   done
+  for r in "${RETIRED[@]}"; do
+    if [ -d "$dest/$r" ]; then rm -rf "$dest/$r"; echo "  ✗ 清理退役技能: $r(并入 pp-archive-v2)"; fi
+  done
   echo "  → $tool: ${#SKILLS[@]} 技能就位 @ $dest"
 }
 
 echo "════ pp-skills 安装 ════"
+install_to "MYAI 金源"   "$MYAI_ROOT/data"
 install_to "Claude Code" "$HOME/.claude"
 install_to "Codex"       "$HOME/.codex"
 

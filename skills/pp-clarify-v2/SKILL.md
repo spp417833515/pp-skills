@@ -1,10 +1,10 @@
 ---
 name: pp-clarify-v2
-description: 基于上下文的深度澄清。事实vs判断四分闸(只问人拍的业务判断,事实 AI 自读)· 意图优先 · 决策点单问「A/B 对比图 + mermaid 流程图」· 第一性反问三式 · 写 ppwiki clarify。最终输出三件产物:用户原始诉求 / 澄清后清晰描述 / 执行完成后预期效果。锁定后进 /pp-plan-v2。
+description: 基于上下文的深度澄清(根因阶段)。事实vs判断四分闸(只问人拍的业务判断,事实 AI 自读)· 意图优先 · 决策点单问「A/B 对比图 + mermaid 流程图」· 第一性反问三式。路线甲:决策/证据/逐条目的验收全进 ppwiki clarify v4 引擎字段(set_requirement_goal/decide_clarification/set_understanding),不写游离 md。v4 需求行式:每条需求一条目,目的+验收长在条目上,每条齐备才能锁。锁定后进 /pp-plan-v2 派生任务。
 disable-model-invocation: true
 ---
 
-# /pp-clarify-v2 — 深度澄清(事实vs判断 + 三件产物收尾)
+# /pp-clarify-v2 — 深度澄清(事实vs判断 + 三件产物 → 全进 clarify 引擎字段)
 
 ## 定位
 
@@ -13,7 +13,7 @@ disable-model-invocation: true
 不是 LLM 评分/模糊度/本体 · 是"事实 AI 自读 · 判断才问你"
 不是无限循环 · 是决策点清空 + 三件产物锁定即收
 全程:自然大白话 + 表 + mermaid 逻辑流程图 + A/B 对比,让你选
-收尾:输出三件产物 = 原始诉求 / 澄清后清晰描述 / 预期效果
+收尾:三件产物 = 原始诉求 / 澄清后清晰描述 / 预期效果 → 全进 clarify 引擎字段
 ```
 
 ## 调用方式
@@ -27,9 +27,9 @@ disable-model-invocation: true
 | 项 | 内容 |
 |---|---|
 | 输入 | 一句话需求(用户)+ 三源调研(wiki / 代码 / 外部) |
-| 输出 | 三件产物(goal 锁定)+ **任务目录(本技能创建)** + 证据/{代码证据,外部证据}.md |
-| Store 接线 | ppwiki clarify 模块 · 记账①②③ → 见 §Store 接线 |
-| 缺依赖行为 | 无 ppwiki → **声明式降级**:经用户确认转本地档案模式,三件产物+决策落 `任务目录/澄清.md` 顶部标「未入库」,恢复后 /pp-sync-v2 补录;wiki 源不可用 → 三源缺一照走(标注) |
+| 输出 | **clarify v4 引擎记录**:逐条 目的+验收(`set_requirement_goal`)+ 决策(`decide_clarification`)+ 证据(`set_understanding`/`set_notes`)· status=locked(用户确认落章) |
+| Store 接线 | ppwiki clarify 模块 · 富内容直接进字段 → 见 §Store 接线 |
+| 缺依赖行为 | 无 ppwiki → **声明式降级**:经用户确认转本地档案模式,三件产物+决策暂落本地 `澄清.md` 标「未入库」,恢复后重跑补录;wiki 源不可用 → 三源缺一照走(标注) |
 
 ## 一、事实 vs 判断 · 四分闸(每个候选问题先归类 · 红线"读事实不读记忆"落地)
 
@@ -45,11 +45,11 @@ disable-model-invocation: true
 
 | 三源(先跑·不问) | 动作 | 工具 |
 |---|---|---|
-| Wiki | 找历史决策/沉淀 · 读 `_README` 全局逻辑流程图(吃透项目逻辑流程架构) | 知识库检索 → 记账⓪ |
+| Wiki | 找历史决策/沉淀 · 读全局逻辑流程图(吃透项目逻辑流程架构) | `wiki --search` / `wiki --tree`(只读) |
 | 代码 | 读现状/调用链/可复用 · 理清当前任务涉及的详细逻辑流程 | `Read` / `Grep` / `Glob` |
 | 外部 | 版本/标准/官方指引 · 优秀项目参考(同类项目怎么做) | web 检索(仅当判断依赖外部事实) |
 
-三源结果落盘 → `[任务名]/证据/代码证据.md`(每条 file:line · 含当前任务涉及的调用链/逻辑流程,供 plan §0.0 定位)· `证据/外部证据.md`(URL/来源)。**任务目录由本技能首次创建**(结构与所有权单源 → /pp-pipeline §三§四)。
+三源结果**进 clarify 引擎字段**:代码证据(每条 file:line · 含调用链/逻辑流程,供 plan 定位)→ `clarify --set_understanding`(text + confidence,**把握度=high/medium/low 英文值·中文是语义**);外部 URL/来源 → `clarify --set_notes`。**不再 mkdir 任务目录、不写证据 md**(所有权与字段映射 → /pp-pipeline §三§四)。
 
 > ①③ = 代码层(AI 自决)· ② = 证据确认 · ④ = 逻辑层(你拍)。这就是下一节的细粒度版。
 
@@ -76,7 +76,7 @@ N=0 → 全代码层可定 · 跳过单问 · 直接锁;  N 1-8 → 逐个单问
 ```
 
 **⓪ 进决策点前两道闸(对齐公约「理解优先」)**
-- 多需求:>1 条需求 → 先拆条 · 逐条标类型(新功能/Bug/体验/重构)· 各自走决策点 · 三件产物按条列
+- 多需求:>1 条需求 → 先拆条(各 `clarify --append_requirement`)· 逐条标类型(新功能/Bug/体验/重构)· 各自走决策点 · 三件产物按条列
 - 数据风险:需求触及 删除/覆盖/迁移 → 暂停 · 该决策点必含「什么数据 / 什么触发 / 可逆吗」· 列为必锁项 · 不可逆要你显式确认
 
 **① 排序:意图优先**
@@ -109,12 +109,12 @@ N=0 → 全代码层可定 · 跳过单问 · 直接锁;  N 1-8 → 逐个单问
 ## 四、6 步流程
 
 ```
-Step 1 · 收原话 · 创建任务目录 + 证据/ → 记账①
-Step 2 · 三源调研 + 四分闸归类(事实自读·落证据)· 不问用户
+Step 1 · 收原话 → clarify --create(记账①)· 多需求 → append_requirement 拆条
+Step 2 · 三源调研 + 四分闸归类(事实自读)· 证据进 set_understanding/set_notes(记账②)· 不问用户
 Step 3 · 先过 ⓪ 两道闸(多需求拆条 / 数据风险必锁)→ 推出 N 个"人·判断"决策点(每条需求 0..8)· 意图优先排序
-Step 4 · N>0 → 单问循环:A/B 对比图 + mermaid 流程图 → 必要时第一性反问 · 每锁一条 → 记账②
-Step 5 · lock 前过 analyst 6 镜自查(下表)· 命中 → 补 1 决策点(只挑"会改方向"的)
-Step 6 · 全锁 → 输出三件产物(§五)→ 记账③ → 进 /pp-plan-v2
+Step 4 · N>0 → 单问循环:A/B 对比图 + mermaid 流程图 → 必要时第一性反问 · 每锁一条 → append+answer+decide_clarification(记账③)
+Step 5 · 锁前过 analyst 6 镜自查(下表)· 命中 → 补 1 决策点(只挑"会改方向"的)
+Step 6 · 全锁 → 逐条 set_requirement_goal(每条需求:目的+验收≥1)+ lock(记账④·锁定门逐条校验)→ 进 /pp-plan-v2
 ```
 
 **analyst 6 镜(Step 5 · lock 前快速自查 · 别找 50 个边界)**
@@ -124,30 +124,31 @@ Step 6 · 全锁 → 输出三件产物(§五)→ 记账③ → 进 /pp-plan-v2
 | 护栏 | 有该定边界没定的? | 补/记代码层授权 |
 | 范围蔓延 | 哪里容易做着做着超范围? | 写进非目标 |
 | 未验假设 | 哪条答案是没验的假设? | 第一性反问一击 |
-| 边界条件 | 异常/空/并发有没漏? | 记入澄清描述 |
-| 验收方向 | 怎么算做成了? | 只记方向 · 细节留 plan-v2 |
+| 边界条件 | 异常/空/并发有没漏? | 记入澄清(set_notes / 决策点) |
+| 验收方向 | 怎么算做成了? | 记入 success_criteria · 细节留 plan-v2 |
 
 ## 五、最终澄清产物(三件 · 收尾必出 · = 项目公约 AGENT.md 澄清图表三列)
 
 ```
-┌──── 澄清完成 · 最终产物 ──────────────────────────────┐
+┌──── 澄清完成 · 最终产物(→ 逐条 clarify --set_requirement_goal)──────────┐
 │ ① 用户原始诉求(你的原话 · 直引不重写)                  │
 │    "<原话>"                                            │
 │                                                        │
-│ ② 澄清后的清晰描述                                      │
+│ ② 澄清后的清晰描述  → goal                              │
 │    目的:<为什么 · 真实目的>                            │
 │    已锁决策:<决策1 / 决策2 ...>                        │
 │    非目标:<明确不做什么>                               │
 │    代码层授权:<AI 可自决的实现项 · 直喂 plan-v2>       │
 │                                                        │
-│ ③ 执行完成后预期效果                                    │
+│ ③ 执行完成后预期效果  → success_criteria(验收方向)     │
 │    你能:<做完能多做什么>                               │
 │    不再:<不再被什么困扰>                               │
 └────────────────────────────────────────────────────────┘
 ```
 
-三件产物 = ppwiki `clarify --lock` 的 goal(浓缩)= 后续 /pp-plan-v2 唯一权威输入。
-**硬门:② 的「非目标」和「代码层授权」未锁 → 即使决策点清空也不许进 plan-v2。**
+最终产物 = 逐条 `clarify --set_requirement_goal`(requirement_seq + goal=该条目的,success_criteria=该条验收)= 后续 /pp-plan-v2 唯一权威输入(总述写 `set_notes` 注释参考)。
+**硬门:② 的「非目标」和「代码层授权」未锁 → 即使决策点清空也不许 lock / 进 plan-v2。**
+**逐条 set_requirement_goal 是 lock 前置**(v5 锁定门:每条目 goal+acceptance≥1+**layer已标** + 协商全 decided;set_goal 已退役=UNKNOWN_OP;磁盘键=英文)。
 
 ## 六、用户视角对话样例
 
@@ -157,7 +158,7 @@ Step 6 · 全锁 → 输出三件产物(§五)→ 记账③ → 进 /pp-plan-v2
 AI: [深度澄清] 三源 + 四分闸 · 不直接问你。
     ✓ wiki:无相关  ✓ 代码:Avatar.tsx:50 直接渲染·无裁剪  ✓ 已有 Upload.tsx 可复用
     ✓ 真实目的:让你控制显示区域·避免长图变形
-    → 证据落 证据/代码证据.md
+    → 证据进 clarify:set_understanding(Avatar.tsx:50 / Upload.tsx:22,confidence=high)
 
     推出 1 个"人·判断"决策(意图优先):
 
@@ -174,23 +175,22 @@ AI: [深度澄清] 三源 + 四分闸 · 不直接问你。
 
 你: A
 
-AI: ✓ 锁:浏览器内·上传前 · ppwiki decide 已写
+AI: ✓ 锁:浏览器内·上传前 · clarify decide_clarification 已写
     第一性·削简:框尺寸/输出格式 需要你定吗?→ 不需(代码层·plan 定)
     analyst 6 镜:范围蔓延 → 记非目标"不做滤镜/不做多图批量" ✓
 
     ┌──── 澄清完成 · 最终产物 ──────────────────────┐
     │ ① 原始诉求:"给用户头像加裁剪"                 │
-    │ ② 澄清后:目的=控制显示区域避免变形;          │
-    │    已锁=浏览器内裁剪·上传前;                  │
-    │    非目标=不做滤镜·不做多图批量;             │
+    │ ② goal:目的=控制显示区域避免变形;            │
+    │    已锁=浏览器内裁剪·上传前;非目标=不做滤镜/批量;│
     │    代码层授权=裁剪库/框尺寸/输出格式 由 plan 定 │
-    │ ③ 预期效果:你能 上传任意图→框选→存方形小图;  │
+    │ ③ success_criteria:上传任意图→框选→存方形小图;│
     │    不再 被长图变形/带宽浪费困扰                │
     └────────────────────────────────────────────────┘
       A. 锁(推荐 · 进 /pp-plan-v2)   B. 还想想
 
 你: A
-AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
+AI: ✓ clarify 逐条 set_requirement_goal + lock 已写(v4 行式进引擎·用户确认落章)  下一步:/pp-plan-v2
 ```
 
 ## 七、问题构造规则
@@ -201,16 +201,18 @@ AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
 
 ## Store 接线(ppwiki · 移植时改写/删除本节 · 方法论正文零 ppwiki)
 
-| 记账点 | 时机 | op |
+| 记账点 | 时机 | op(富内容进字段) |
 |---|---|---|
 | ⓪ | Step 2 三源·wiki 源 | `wiki --search {query}` / `wiki --tree`(只读) |
-| ① | Step 1 收原话 | `clarify --create {name, requirement}` |
-| ② | Step 4 每锁一决策 | `clarify --append_clarification` → 用户答 `--answer_clarification` → 沉淀 `--decide_clarification` |
-| ③ | Step 6 全锁收尾 | `clarify --lock {name, goal=三件浓缩}` |
+| ① | Step 1 收原话 | `clarify --create {name, requirement}`(多需求 → `append_requirement {name,text,source}`) |
+| ② | Step 2 证据落字段 | `clarify --set_understanding {name,requirement_seq,text,confidence}`(text 带 file:line)· 外部 → `clarify --set_notes {name,notes}` |
+| ③ | Step 4 每锁一决策 | `clarify --append_clarification {name,question,requirement_seq}`(**必挂需求条目**)→ `--answer_clarification {name,seq,answer}` → `--decide_clarification {name,seq,decision}` |
+| ④ | Step 6 逐条收尾 | 每条需求 `clarify --set_requirement_goal {name,requirement_seq,goal,success_criteria,layer}`(**layer=logic|business|ui 锁定门必填**) → `clarify --lock {name}`(名称≤50字符·锁定落章) |
 
-- op / 参数以 `ppwiki('system --help', {module:'clarify'})` 为准 · 禁凭记忆
+- op / 参数以 `wiki('system --help', {module:'clarify'})` 为准 · 禁凭记忆
 - 派生 task **不在本技能**(锁定后由 /pp-plan-v2 `clarify --derive_task`,所有权 → /pp-pipeline §三)
-- 离线降级:记账①②③ 改落 `任务目录/澄清.md`(标「未入库」)· 必须显式声明 · 禁静默跳过
+- **不写游离 md、不 mkdir 任务目录**(富内容全进上述字段)
+- 离线降级:记账改落本地 `澄清.md`(标「未入库」)· 必须显式声明 · 禁静默跳过
 
 ## 八、失败 / 边界
 
@@ -219,10 +221,11 @@ AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
 | ppwiki MCP 未连接 | 提示 `install_mcp.sh` · 经用户确认转**本地档案模式**(澄清.md 标「未入库」· 见 §Store 接线) |
 | 三源全空 | 先补 1 句"你最想达到什么效果?" |
 | AI 推出 >8 决策点 | 没读懂代码 · 退回三源 · 收口 ≤8 |
-| AI 推出 0 决策点 | 跳过单问 · 非目标+代码层授权 摊给用户一次性点确认 → 出三件产物 + lock |
+| AI 推出 0 决策点 | 跳过单问 · 非目标+代码层授权 摊给用户一次性点确认 → 逐条 set_requirement_goal + lock |
 | 需求触及 删/覆盖/迁移 | 暂停 · 讲清「数据/触发/可逆」· 列为必锁决策点 · 不可逆要用户显式确认 |
-| 非目标/代码层授权 未锁 | 不许 lock · 补问到锁(硬门) |
-| 用户中途"够了" | 仍**必须锁 非目标+代码层授权**(AI 速拟·你一键确认)· 其余决策点可跳 · 声明未锁+残留风险 · 再 lock |
+| 非目标/代码层授权 未锁 | 不许 set_requirement_goal/lock · 补问到锁(硬门) |
+| lock 报错(条目未齐备 / 有未决策) | 按报错逐条补 set_requirement_goal 或 decide 剩余决策点 · 以 `system --help{module:'clarify'}` 核对 |
+| 用户中途"够了" | 仍**必须锁 非目标+代码层授权**(AI 速拟·你一键确认)· 其余决策点可跳 · 声明未锁+残留风险 · 再逐条 set_requirement_goal/lock |
 
 ## 九、不做的事
 
@@ -230,7 +233,7 @@ AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
 - ❌ 不问代码层 / 不让你陷入实现选择
 - ❌ 不出 LLM 术语(评分/模糊度/本体/加权)
 - ❌ 不跳三源直接问 · 不问代码已能回答的事
-- ❌ 不静默绕过记账(在线必经记账①②③;离线必须显式声明本地档案模式)
+- ❌ **不写游离 md / 不 mkdir 任务目录**(富内容全进 clarify 字段;离线才落本地并显式声明)
 - ❌ 不在锁定前派生 task(留 /pp-plan-v2)
 - ❌ 非目标/代码层授权没锁不许收尾
 
@@ -238,7 +241,7 @@ AI: ✓ ppwiki clarify --lock 已写  下一步:/pp-plan-v2
 
 ```
 上游:用户一句话需求
-产出:三件产物(goal 锁定)+ 任务目录 + 证据/{代码证据,外部证据}.md
-下游:/pp-plan-v2(读三件产物 · 派生 task)
-全链路 / 目录结构 / 所有权 → /pp-pipeline
+产出:clarify v4 引擎记录(逐条 set_requirement_goal + 决策 + 证据字段)· status=locked(用户确认落章)
+下游:/pp-plan-v2(clarify --get 读三件产物 · derive_task 派生)
+全链路 / 字段映射 / 所有权 → /pp-pipeline
 ```

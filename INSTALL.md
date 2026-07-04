@@ -6,8 +6,8 @@
 
 ## 这是什么
 
-6 个串联技能 = 一条「澄清 → 方案 → 执行 → 审查 → 同步 → 归档」的开发流水线。
-每阶段人点头才进下一阶段,产物沉淀进 ppwiki 知识库。详见 [README.md](README.md)。
+5 个串联技能 = 一条「根因 → 方案 → 执行 → 审查 → 归档」的开发流水线。
+每阶段人点头才进下一阶段,富内容进 ppwiki 引擎结构化字段(workflow_get 唯一数据源)。详见 [README.md](README.md)。
 
 ## AI 自动安装步骤(Claude 或 Codex 照做)
 
@@ -19,7 +19,7 @@
 2. **拷技能**:把本仓库 `skills/pp-*/` 整目录拷到对应 `~/.<tool>/skills/`
    (已存在同名先删再拷,保证是最新版)
 
-3. **清旧版**:删除 `~/.<tool>/skills/` 下无前缀的旧版 `clarify-v2` `plan-v2` `archive-v2`(若有)
+3. **清旧版**:删除 `~/.<tool>/skills/` 下无前缀的旧版 `clarify-v2` `plan-v2` `archive-v2`,以及已退役的 `pp-sync-v2`(并入 pp-archive-v2)
    —— 单一信源,避免新旧两套混淆
 
 4. **验依赖**:确认 ppwiki MCP 已配置
@@ -29,7 +29,7 @@
 
 5. **重启**:新技能通常热加载;若 `/` 菜单没出现,重启一次工具
 
-6. **报告**:列出已装的 6 技能 + ppwiki 状态
+6. **报告**:列出已装的 5 技能 + pp-pipeline + ppwiki 状态
 
 ## 一键脚本(等价于上面)
 
@@ -37,11 +37,11 @@
 bash install.sh
 ```
 
-脚本会:检测 Claude/Codex → 拷 6 技能 → 清理旧 v1 → 提示 ppwiki 状态。
+脚本会:检测 Claude/Codex → 拷 6 目录(5 技能 + pipeline)→ 清理旧 v1 + 退役 pp-sync → 提示 ppwiki 状态。
 
 ## 装完怎么用
 
 对 AI 输入 `/pp-clarify-v2 <一句话需求>`,按提示一路 `A` 到 `/pp-archive-v2`。
 
-> 6 技能默认 `disable-model-invocation`(Claude 侧):只你手动喊,AI 不自动触发,守住「人点头」闸门。
+> 5 技能默认 `disable-model-invocation`(Claude 侧):只你手动喊,AI 不自动触发,守住「人点头」闸门。
 > Codex 侧暂不认该字段,技能可被 AI 触发——若要 Codex 也只手动,删该行或改用 Codex 的等价控制。
